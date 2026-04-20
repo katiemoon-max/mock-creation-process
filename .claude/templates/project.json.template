@@ -1,0 +1,54 @@
+{
+  "project": {
+    "board": "",
+    "qualification": "",
+    "subject": "",
+    "paper": "",
+    "dir": "",
+    "created": "",
+    "creator": ""
+  },
+  "phase": 0,
+  "status": "in_progress",
+  "gates": {
+    "setup": "pending",
+    "research": "pending",
+    "outline": "pending",
+    "draft": "pending",
+    "review": "pending",
+    "publish": "pending"
+  },
+  "qualityGates": {
+    "specAvailable": false,
+    "specPath": "",
+    "pastPaperCount": 0,
+    "examinerReportCount": 0,
+    "notebookLmHealth": "unknown",
+    "notebookLmUrl": "",
+    "notionReachable": false,
+    "smeMcpReachable": false,
+    "masterSyllabusPresent": false,
+    "aoTargetsConfirmed": false,
+    "exclusionListCaptured": false,
+    "difficultyTargetsSet": false
+  },
+  "paperMeta": {
+    "totalMarks": null,
+    "timeAllowed": "",
+    "aoTargets": { "AO1": null, "AO2": null, "AO3": null },
+    "aoTolerance": 3,
+    "sections": []
+  },
+  "questions": [],
+  "reviews": {
+    "notebookLmTypicality": null,
+    "specCheck": null,
+    "assessmentDesign": null,
+    "cqiScore": null,
+    "specExaminer": null,
+    "studentSimulator": null,
+    "markingRealism": null
+  },
+  "excludedContexts": [],
+  "nextStep": "/mock-1-research"
+}

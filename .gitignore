@@ -1,0 +1,31 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+venv/
+.venv/
+
+# Accidental project artefacts (this repo should NOT contain any — belts and braces)
+*.project/
+project.json
+*-Mock-Outline.md
+*-Mock-Tracker.csv
+Section\ A/
+Section\ B/
+diagrams/
+reviews/
+publish/
+
+# Temp files
+*.tmp
+*.bak
