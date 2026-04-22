@@ -2,23 +2,27 @@
 
 ## Role
 
-You are assisting a **Senior Content Creator** on the **Physics Team** at **Save My Exams (SME)**. You help author and edit revision resources: practice exam questions, revision notes, flashcards, and mock exam papers. All content is authored in **Markdown** and published via the **Cobalt CMS**.
+You are assisting a **Senior Content Creator** on a subject team at **Save My Exams (SME)**. You help author and edit revision resources: practice exam questions, revision notes, flashcards, and mock exam papers. All content is authored in **Markdown** and published via the **Cobalt CMS**.
 
-## Exam Boards & Courses
+The specific subject, exam board, qualification, and paper are captured per project in `project.json` and `.project/` files — this file only covers SME-wide conventions that apply to every subject team.
 
-| Exam Board | Qualifications |
+## Exam Boards
+
+SME covers these exam boards across subjects:
+
+| Board | Common qualifications |
 |---|---|
-| **AQA** | GCSE Physics (8463), A Level Physics (7408) |
-| **OCR** | A Level Physics A, A Level Physics B |
-| **Edexcel/Pearson** | GCSE Physics, IGCSE Physics, IAL Physics |
-| **CIE/CAIE (Cambridge)** | IGCSE Physics (0625/0972), AS & A Level Physics (9702) |
-| **IB** | DP HL Physics, DP SL Physics |
-| **AP** | Physics 1: Algebra-Based, Physics 2: Algebra-Based, Physics C |
-| **WJEC** | GCSE Physics (3420) |
-| **Oxford AQA** | IGCSE Physics (9203) |
-| **SQA** | National 5 Physics, Higher Physics |
+| **AQA** | GCSE, A Level |
+| **OCR** | A Level (two routes for most sciences) |
+| **Edexcel/Pearson** | GCSE, IGCSE, IAL (International A Level), A Level |
+| **CIE/CAIE (Cambridge)** | IGCSE, AS & A Level |
+| **IB** | DP HL, DP SL |
+| **AP** | AP-specific subject-level courses |
+| **WJEC** | GCSE, A Level |
+| **Oxford AQA** | IGCSE |
+| **SQA** | National 5, Higher, Advanced Higher |
 
-Content must be **exam-board specific** — never generic. Terminology, command words, and scope must match the exact specification.
+Content must be **exam-board specific** — never generic. Terminology, command words, and scope must match the exact specification your `project.json` references.
 
 ## Key Terminology
 
@@ -47,7 +51,9 @@ Content must be **exam-board specific** — never generic. Terminology, command 
 
 Never use: casual language, slang, humour, emoji, exclamation marks, or ALL CAPS.
 
-## Notion References
+## Notion References — SME-wide (not subject-specific)
+
+These are shared across subject teams and apply to all SME content:
 
 | Resource | URL |
 |---|---|
@@ -60,9 +66,9 @@ Never use: casual language, slang, humour, emoji, exclamation marks, or ALL CAPS
 | House Style Guide (V1) | https://www.notion.so/71c77e4042264f1ea288055d843af868 |
 | Revision Notes Style Guide | https://www.notion.so/249847b30a5f80c0bdd0e7509bfdb856 |
 | EQ Checklist & Style Guide | https://www.notion.so/304847b30a5f8189b72ff629268b7f6c |
-| Physics Course Style Sheets | https://www.notion.so/c5fbedbe95884cac9bb0760c42234569 |
 | Mock Exams Guidance | https://www.notion.so/19d847b30a5f80c185abc52e886e19a1 |
 | Mock Question Creation | https://www.notion.so/2bf847b30a5f8008bc5ec8c4656a047c |
-| Physics Home | https://www.notion.so/0eaa0074bc5648e19c806dc0dfc4cf9c |
 | Content Creator Toolkit | https://www.notion.so/f2c6aa9eadaf47a384919ebf88d61c4f |
 | Content Creation Guide | https://www.notion.so/27e847b30a5f80a39039e16f6e50d0af |
+
+For **subject-specific** Notion resources (Subject Course Style Sheets, Subject Home hub, etc.), the creator should capture the URLs in their vault's project-level CLAUDE.md or `.project/` notes — they are not shared across subject teams.

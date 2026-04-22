@@ -31,7 +31,7 @@ Before starting, confirm these with the user:
 
 | Input | How to obtain |
 |---|---|
-| **Paper directory** | The directory containing the SFMA files (e.g. `C:\Users\kjmoo\Documents\Claude\feedback\Edexcel GCSE Physics\Paper 2F\`). May be provided as an argument |
+| **Paper directory** | The directory containing the SFMA files (e.g. `02 - Projects/{{BOARD}} {{QUALIFICATION}} {{SUBJECT}}/{{PAPER}}/`). May be provided as an argument |
 | **Paper name** | The short paper identifier used in prompts (e.g. "Paper 2F", "Paper 1", "Paper 3A"). Infer from the directory name or outline file |
 | **NotebookLM notebook URL** | The URL of the NotebookLM notebook loaded with past papers for this exam board. Ask the user if not known. Check MEMORY.md for saved notebook URLs |
 | **SFMA subdirectory** | Usually `Section A\` — confirm if `Section B\` also exists and needs reviewing |

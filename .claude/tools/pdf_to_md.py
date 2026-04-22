@@ -1,13 +1,33 @@
-"""Convert Edexcel A Level Physics PDFs to markdown using pymupdf4llm.
+"""Convert past-paper / mark-scheme / examiner-report PDFs to markdown using pymupdf4llm.
 
 Output location: same folder as source, with .md extension. Filenames use human-readable
-form: `Paper1-Question-2024.md`, `Paper1-MarkScheme-2024.md`, `Paper1-ExaminerReport-2024.md`.
+form: `Paper{N}-Question-{YEAR}.md`, `Paper{N}-MarkScheme-{YEAR}.md`,
+`Paper{N}-ExaminerReport-{YEAR}.md`.
 
-File code legend (Edexcel):
-  que = Question paper
-  msc = Combined Mark Scheme (multiple years in one doc)
-  rms = Reserved/Revised Mark Scheme (single year)
-  pef = Principal Examiner Feedback (examiner report)
+This script is subject/level/course-agnostic — it adapts to any exam board whose PDF
+filenames match a consistent pattern. Configure the following to match your board:
+
+  1. SOURCE_DIR          — where the PDFs live
+  2. FILENAME_RE         — regex capturing (paper, code, year) from the PDF filename
+  3. CODE_LABEL          — maps the board's file-code shorthand to human labels
+
+Example configurations for common boards:
+
+  Edexcel A Level Physics 9PH0 (filenames like `9PH0_01_que_20240613.pdf`):
+      FILENAME_RE = re.compile(
+          r"^(?:9PH0|9ph0)[_-](0[123])[_-](que|msc|rms|pef)[_-](\\d{4})\\d{4}\\.pdf$"
+      )
+      CODE_LABEL = {"que": "Question", "msc": "MarkScheme", "rms": "MarkScheme", "pef": "ExaminerReport"}
+
+  AQA A Level Biology 7402 (filenames like `AQA-74021-QP-JUN22.PDF`):
+      FILENAME_RE = re.compile(
+          r"^AQA[-_]7402(\\d)[-_](QP|MS|INS)[-_]([A-Z]{3}\\d{2})\\.(pdf|PDF)$"
+      )
+      CODE_LABEL = {"QP": "Question", "MS": "MarkScheme", "INS": "Insert"}
+
+Usage:
+  python pdf_to_md.py              # convert all PDFs in SOURCE_DIR
+  python pdf_to_md.py 01           # convert only Paper 1 PDFs
 """
 from __future__ import annotations
 
@@ -17,18 +37,24 @@ from pathlib import Path
 
 import pymupdf4llm
 
-SOURCE_DIR = Path(r"C:/Users/Katie Moon/Documents/Claude/03 - Resources/Spec Vault/Edexcel/A-Level")
+# --- Configure for your course --------------------------------------------------
 
-CODE_LABEL = {
-    "que": "Question",
-    "msc": "MarkScheme",  # combined / long-form
-    "rms": "MarkScheme",
-    "pef": "ExaminerReport",
-}
+SOURCE_DIR = Path(r"{{SOURCE_DIR}}")  # e.g. r"C:/Users/you/Documents/.../Spec Vault/{board}/{level}"
 
+# Capture groups, in order: (paper, code, year)
 FILENAME_RE = re.compile(
     r"^(?:9PH0|9ph0)[_-](0[123])[_-](que|msc|rms|pef)[_-](\d{4})\d{4}\.pdf$"
 )
+
+# Map the code group to a human-readable label for the output filename
+CODE_LABEL = {
+    "que": "Question",
+    "msc": "MarkScheme",       # combined / long-form (multi-year)
+    "rms": "MarkScheme",       # single-year
+    "pef": "ExaminerReport",
+}
+
+# ------------------------------------------------------------------------------
 
 
 def parse(name: str) -> tuple[str, str, str] | None:
@@ -66,7 +92,7 @@ def main() -> None:
         if only_paper and paper != only_paper:
             continue
 
-        # Combined mark-scheme PDFs (msc) already cover multiple years; keep year in filename
+        # Combined mark-scheme PDFs (multi-year) keep year in filename, with -combined suffix
         out_name = target_name(paper, code, year)
         if code == "msc":
             out_name = out_name.replace(".md", "-combined.md")

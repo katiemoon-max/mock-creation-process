@@ -32,16 +32,22 @@
 - Maintain consistent use of the equation editor throughout a piece of content
 - Subscripts and superscripts must be properly formatted (not plain text)
 
-## Common Physics Equations
+## Subject-specific equations
 
-When writing equations, follow the exam board's formula booklet exactly. For example:
+When writing equations, follow the **exam board's formula booklet** exactly — copy notation, subscripts, and units directly from the spec. Do not substitute an adjacent-board's version.
+
+Examples (Physics):
 
 - Kinematic equations: $$v = u + at$$, $$s = ut + \frac{1}{2}at^2$$
 - Newton's second law: $$F = ma$$
 - Weight: $$W = mg$$
 - Energy: $$E_k = \frac{1}{2}mv^2$$, $$\Delta E_p = mg\Delta h$$
 
+For other subjects (Chemistry, Biology, Maths, Psychology, Geography), replace these examples with the equations native to your board's spec.
+
+**Cross-board trap:** formulae that appear in one board's spec (e.g. `C = ε₀A/d` in AQA A Level Physics) may NOT be in a sibling board's spec (e.g. Edexcel 9PH0). Always cross-reference Appendix 8 / the formulae sheet of the specific paper you're drafting — this is enforced by `/spec-check` in Phase 4.
+
 ## Greek Letters
 
 - Use proper Greek letter symbols (not word approximations): $$\lambda$$ not "lambda"
-- Common physics Greek letters: $$\alpha$$, $$\beta$$, $$\gamma$$, $$\delta$$, $$\theta$$, $$\lambda$$, $$\mu$$, $$\rho$$, $$\sigma$$, $$\omega$$
+- Common STEM Greek letters: $$\alpha$$, $$\beta$$, $$\gamma$$, $$\delta$$, $$\theta$$, $$\lambda$$, $$\mu$$, $$\rho$$, $$\sigma$$, $$\omega$$

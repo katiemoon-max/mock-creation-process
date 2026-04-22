@@ -119,9 +119,14 @@ When starting a new paper:
 
 ## Status
 
-This pipeline was built and tested end-to-end through Phase 2 on Edexcel A Level Physics Paper 1 in April 2026. See `docs/original-plan.md` for the original design document.
+All six phases (0–5) now tested end-to-end on a real paper (Edexcel A Level Physics Paper 1, April 2026) — 19/19 SFMAs drafted, reviewed, and uploaded to Cobalt with spec-point IDs attached via the SME content MCP.
 
-Contributions from future projects (e.g. Paper 2 and Paper 3 of Edexcel A Level Physics, then new subjects) will feed back as pipeline refinements — improvements made while using the pipeline should go back into the skills themselves.
+See:
+- `docs/original-plan.md` — original design document
+- `docs/retrospective-2026-04-21.md` — Phase 3/4 learnings from the first end-to-end run
+- `docs/retrospective-2026-04-22.md` — Phase 5 learnings (CMS upload + spec-point attachment)
+
+Contributions from future projects (Paper 2, Paper 3, new subjects, new boards) should feed back as pipeline refinements — improvements made while using the pipeline should go back into the skills themselves. The pipeline is subject/level/course-agnostic by design; if you find board- or subject-specific content leaking into a skill, that's a bug.
 
 ## Licence
 

@@ -204,3 +204,6 @@ Set `gates.draft: "pass"`, `phase: 4`, `nextStep: "/mock-4-review"`.
 - **Cobalt formatting is not optional.** Every SFMA goes through Cobalt; violations cost time to fix post-hoc.
 - **Do not invent past-paper parallels.** Use the catalogues from `.project/catalogues/`.
 - **Respect the exclusion list verbatim.** If a topic or context on the exclusion list starts creeping in, STOP and ask the user.
+- **Do NOT wrap the model answer in `**Model Answer**` / `**End of Model Answer**`.** It is not a valid Cobalt callout (only MS&G, ET&T, Worked Example, Case Study, Blockquote are). Write the solution content directly under the `## Solution` heading — no wrapper. Phase 5 publish strips these defensively, but they shouldn't be in the SFMA to begin with.
+- **MCQ distractor explanations are paragraphs, not bullets.** Write each "**A** is incorrect because…", "**B** is incorrect because…" as a separate paragraph separated by blank lines. Bullets (`- `) stay for positive-derivation steps only.
+- **MCQ ET&T is optional.** Include one only when it adds genuine new insight beyond the distractor commentary. If the distractor explanations already cover the teaching points, omit it. (For structured parts, ET&T is still recommended on every part.)
