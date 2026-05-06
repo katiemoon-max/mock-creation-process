@@ -119,12 +119,15 @@ When starting a new paper:
 
 ## Status
 
-All six phases (0–5) now tested end-to-end on a real paper (Edexcel A Level Physics Paper 1, April 2026) — 19/19 SFMAs drafted, reviewed, and uploaded to Cobalt with spec-point IDs attached via the SME content MCP.
+All six phases (0–5) now tested end-to-end on two real papers:
+- **Edexcel A Level Physics Paper 1** (April 2026) — 19/19 SFMAs drafted, reviewed, and uploaded to Cobalt with spec-point IDs attached via the SME content MCP. One post-publish `updateQuestion` patch (Q3 friction → off-spec content corrected).
+- **Edexcel A Level Physics Paper 2** (May 2026) — 20/20 SFMAs drafted, reviewed across two re-review passes, and uploaded to Cobalt. CHECK 0.5 spec-point matching pre-flight passed cleanly. Cross-qualification reuse map shows 19/20 questions reusable for Edexcel IAL and 16+/20 for AQA/OCR/CIE A Level.
 
 See:
 - `docs/original-plan.md` — original design document
-- `docs/retrospective-2026-04-21.md` — Phase 3/4 learnings from the first end-to-end run
+- `docs/retrospective-2026-04-21.md` — Phase 3/4 learnings from the first end-to-end run (Paper 1)
 - `docs/retrospective-2026-04-22.md` — Phase 5 learnings (CMS upload + spec-point attachment)
+- `docs/retrospective-2026-05-06.md` — Paper 2 second-time learnings (two-pass re-review pattern, mass-conserving fix sweeps, Cobalt format gap in Phase 3, `updateQuestion` for `pending_review`)
 
 Contributions from future projects (Paper 2, Paper 3, new subjects, new boards) should feed back as pipeline refinements — improvements made while using the pipeline should go back into the skills themselves. The pipeline is subject/level/course-agnostic by design; if you find board- or subject-specific content leaking into a skill, that's a bug.
 

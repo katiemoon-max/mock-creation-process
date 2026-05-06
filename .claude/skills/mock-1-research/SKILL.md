@@ -34,7 +34,7 @@ ACTION: Read the following fresh:
 
 ACTION: Identify the markdown past papers for THIS paper (board/qual/subject/paper). Typical location: the same folder as the spec, with filenames like `Paper{N}-Question-{YYYY}.md`, `Paper{N}-MarkScheme-{YYYY}.md`, `Paper{N}-ExaminerReport-{YYYY}.md`. Expect 5–8 years of coverage.
 
-ACTION: Call `mcp__notebooklm__select_notebook` with the notebook URL to ensure it's the active notebook.
+ACTION: The current NotebookLM MCP doesn't require a select step — query tools accept the notebook ID directly via `notebook_id`. Verify auth is live with `mcp__notebooklm__server_info`; if `auth_status` is stale, call `mcp__notebooklm__refresh_auth` and (only if that fails) ask the user to run `nlm login`. Pass the notebook ID from `qualityGates.notebookLmId` to each sub-agent in its briefing.
 
 ## Script
 

@@ -161,8 +161,6 @@ Wrapped in bold markers with a matching end marker. Use "and" not "&".
 | `Case Study` | Case study | Real-world context |
 | `Blockquote` | Blockquote | Quoted material |
 
-**`**Model Answer**` is NOT a valid callout.** SFMAs sometimes wrap solution content in `**Model Answer**` / `**End of Model Answer**`, but Cobalt doesn't recognise it — the markers render as plain bold text. Write solution content directly under the `## Solution` heading, with no wrapper. `/mock-3-draft` prohibits writing the wrapper at source; `/mock-5-publish` strips it defensively during conversion.
-
 **Syntax:**
 
 ```
@@ -353,11 +351,10 @@ A common mistake is to forget to convert the diameter to a radius before substit
 **End of Examiner Tips and Tricks**
 ```
 
-- Include on **every structured part**, even 1-mark recall parts
+- Include on **every part**, even 1-mark recall parts
 - Focus on common misconceptions and actionable advice
 - Never repeat the solution — provide new insight
 - Use second person voice ("you", "your")
-- For MCQs, ET&T is **optional** — include only when it adds new insight beyond the distractor explanations. If the A/B/D commentary already covers the teaching points, omit
 
 ---
 
@@ -384,13 +381,15 @@ $f{The correct answer is B}
 **Rules:**
 
 - Correct answer uses `$f{The correct answer is X}` — NOT bold
-- Positive-derivation steps use bullet points (`-`) for text, `{align=center}` for equations; label each calculation step on its own `{align=center}` line
-- **Distractor explanations are paragraphs, NOT bullets.** Write each "**A** is incorrect because…", "**B** is incorrect because…" as a separate paragraph separated by blank lines
+- Positive-derivation steps use bullet points (`-`) for text, `{align=center}` for equations
+- Label each calculation step on its own `{align=center}` line
+- **Distractor explanations are paragraphs, NOT bullets.** Write each "**A** is incorrect because…", "**B** is incorrect because…" etc. as a separate paragraph separated by blank lines
 - Distractor explanations use `**B**`, `**C**`, `**D**` only — do NOT include the option value in parentheses
 - No MS&G callout for MCQs — use free text explanation only
 - No marks shown in MCQ solutions
-- **ET&T is optional on MCQs.** Include one only when it adds genuine new insight beyond the distractor commentary
-- **Letter-only choices in the upload payload:** when MCQ options refer to a diagram or table (i.e. the "choice" is just A/B/C/D pointing to something labelled in the problem image), pass `"content": ""` (empty string) in the `choices` array — Cobalt renders the A/B/C/D labels automatically, so including the letter as content duplicates it. Use value/expression/statement content only when the option text is genuinely distinct
+- **ET&T is optional on MCQs.** Include one only when it adds genuine new insight beyond the distractor explanations. If the A/B/D commentary has already covered the teaching points, omit the ET&T
+- When the question asks to derive a compound unit in SI base units, prefer the shortest equation chain to reach the target (e.g. use $$E_k = \frac{1}{2}mv^2$$ to get 1 J in base units, not $$W = Fs$$ combined with $$F = ma$$)
+- **When options are letter-only references** (e.g. points on a diagram, rows of a table, graphs labelled A–D), pass an empty string as the choice content — Cobalt renders the A/B/C/D labels automatically, so including "A"/"B"/"C"/"D" as content duplicates them
 
 ---
 

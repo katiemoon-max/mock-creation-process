@@ -43,14 +43,47 @@ Verify that the content uses the exact terminology from the specification:
 - Variable symbols and unit conventions must match the formula sheet
 - Proper names for laws, principles, and phenomena must match
 
-### Step 4: Check Scope
+### Step 4: Spec-Vocabulary Grep (HARD GATE)
+
+Mechanical check that catches off-spec content even when topic-level scope looks fine. This sits before scope-checking because if a named quantity or formula in the question does not appear anywhere in the spec, the question fails outright — there is no need to debate scope.
+
+**Why this gate exists:** Topic-level scope ("is mechanics in scope?") is too coarse. A Mechanics question can still leak in AQA/CIE-only concepts like the coefficient of friction. The 2026-05-05 Edexcel 9PH0 Paper 1 Q3 incident (μ-based friction MCQ on the published paper, redesigned post-publish to KE ratio-scaling) was caused by exactly this gap — every upstream gate passed because friction *as a topic* was plausibly in scope, but the term "coefficient of friction" never appears in the Edexcel spec.
+
+**Procedure:**
+
+1. Locate the spec markdown for the project. For mock-paper projects, read `project.json.project.dir` and resolve `03 - Resources/Spec Vault/[Board]/[Level]/[board-level-subject]-spec.md`. For ad-hoc spec-check calls, ask the user.
+
+2. From the content under review, extract **distinctive physics tokens** — terms that, if present, would be expected to appear in the spec verbatim or as a close paraphrase:
+   - **Named quantities and physical concepts:** "coefficient of (kinetic/static) friction", "moment of inertia", "Young modulus", "limit of proportionality", "elastic limit", "specific latent heat", "specific heat capacity", "rest mass energy"
+   - **Named laws and principles:** "Hooke's law", "Lenz's law", "Wien's displacement law", "Stefan-Boltzmann law"
+   - **Greek-letter symbols paired with non-generic physical meaning:** μ (friction), η (efficiency), σ (Stefan-Boltzmann), κ (thermal conductivity)
+   - **Distinctive formulas verbatim:** "F = μN", "τ = RC", "λ_max T = constant"
+
+3. Skip generic high-frequency words ("energy", "force", "mass", "speed", "velocity") — they hit every page and tell you nothing.
+
+4. For each distinctive token, run `Grep` against the spec markdown (case-insensitive). Record hits.
+
+5. **Hard-fail criterion:** if ANY distinctive token returns zero hits in the spec, the question FAILS this gate. Off-spec content cannot be moderated against a spec that does not contain it. The question must be redesigned — surrogate spec-point tagging at upload time is not an acceptable workaround.
+
+6. **Allowed exceptions** (verify before exempting):
+   - The token appears only in the formula booklet, not the spec body. The booklet is part of the spec for marking purposes — check `references/[board]/formula-booklet.md` if available, or `03 - Resources/Spec Vault/[Board]/[Level]/[board]-formula-booklet.md`.
+   - The token is a synonym the board treats as equivalent (e.g. "p.d." vs "potential difference"). Confirm with the board's glossary or specification appendix; do not assume.
+
+**Output:** a token-by-token table inside the report:
+
+| Token | Hits in spec | Sample line | Verdict |
+|---|---|---|---|
+| coefficient of kinetic friction | 0 | — | **FAIL — off-spec** |
+| Hooke's law | 3 | §29 (Topic 4) | Pass |
+
+### Step 5: Check Scope
 
 Identify:
 - **Gaps**: Specification content that should be covered but is missing
 - **Extraneous content**: Content included that goes beyond the specification (other exam board's requirements, higher-level content, outdated spec points)
 - **Depth mismatches**: Content that is too shallow or too deep for the qualification level
 
-### Step 5: Check Board-Specific Requirements
+### Step 6: Check Board-Specific Requirements
 
 Different exam boards have specific requirements. Check for:
 - **AQA**: Required practicals, mathematical skills requirements
@@ -103,7 +136,10 @@ Different exam boards have specific requirements. Check for:
 ### Summary
 
 - **Overall alignment**: Strong / Adequate / Weak
+- **Spec-vocabulary grep**: PASS / **FAIL** (count of distinctive tokens with zero hits in spec)
 - **Critical gaps**: [count] specification points not covered
 - **Extraneous items**: [count] items beyond specification scope
 - **Terminology issues**: [count] terms that don't match the specification
 - **Recommendation**: Ready for publication / Needs revision / Needs significant rework
+
+**Hard-fail rule:** If the spec-vocabulary grep returns FAIL for any token, the overall recommendation is at minimum "Needs revision" regardless of other findings. A FAIL on this gate means the question contains a named concept that does not exist in the specification — moderation against a spec that does not contain the concept is not possible.

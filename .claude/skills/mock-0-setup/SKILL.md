@@ -70,16 +70,16 @@ Record `qualityGates.pastPaperCount` and `qualityGates.examinerReportCount`.
 
 ### CHECK 3 — NotebookLM
 
-ACTION: Call `mcp__notebooklm__get_health`. If healthy, call `mcp__notebooklm__list_notebooks`.
+ACTION: Call `mcp__notebooklm__server_info` to check version + auth status. If `auth_status` is `stale` or `not_configured`, call `mcp__notebooklm__refresh_auth` first; if that returns success but subsequent calls still fail with "Authentication expired", ask the user to run `nlm login` in their shell (absolute path on this machine: `C:\Users\Katie Moon\AppData\Roaming\Python\Python314\Scripts\nlm.exe login`). Once auth is live, call `mcp__notebooklm__notebook_list` to enumerate available notebooks.
 
 STOP 3:
 > "Which NotebookLM notebook contains all past papers, the spec, and examiner reports for this paper? Paste the URL or tell me the name."
 
 USER: notebook URL/name.
 
-ACTION: `mcp__notebooklm__select_notebook`. Record URL in `qualityGates.notebookLmUrl`, set `notebookLmHealth: "ok"` if successful.
+ACTION: Record the notebook URL in `qualityGates.notebookLmUrl` and the UUID in `qualityGates.notebookLmId`. Set `notebookLmHealth: "ok"`. The current NotebookLM MCP does not have a `select_notebook` call — query tools (`mcp__notebooklm__notebook_query`, `mcp__notebooklm__cross_notebook_query`, `mcp__notebooklm__source_get_content`) accept the notebook ID directly via a `notebook_id` parameter, so simply persisting the ID in `project.json` is sufficient.
 
-[Conditional: if health or selection fails] Flag to user, allow them to troubleshoot or skip (but mark gate as failed).
+[Conditional: if `server_info`, `refresh_auth`, or `notebook_list` continues to fail after the user has run `nlm login`] Flag to user, allow them to troubleshoot or skip (but mark gate as failed).
 
 ### CHECK 4 — Notion and SME MCPs
 

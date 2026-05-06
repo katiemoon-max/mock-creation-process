@@ -1,6 +1,6 @@
 ---
 name: mock-5-publish
-description: Phase 5 publishing. Gates on all review passes, converts SFMAs to Cobalt-ready payloads, uploads via the CMS's createQuestion MCP with batched consent, attaches spec-point IDs via updateQuestion, and writes the cross-qualification reuse map. Final phase of the mock paper pipeline.
+description: Phase 5 publishing. Gates on all review passes, converts SFMAs to Cobalt format, uploads via SME createQuestion MCP (per-question STOP for safety — no update/delete in Cobalt after creation), and writes the cross-qualification reuse map. Final phase of the mock paper pipeline.
 user_invocable: true
 arguments: ""
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash
@@ -8,7 +8,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash
 
 # Mock Paper Publish (Phase 5)
 
-You convert drafted SFMAs into Cobalt-ready payloads and upload them to the CMS. The CMS MCP supports `updateQuestion` for questions in `pending_review` status — corrections remain possible right up until publication. Once a question is moved to **published**, no further update/delete is allowed, so the gate before this phase is still a hard one.
+You convert drafted SFMAs into Cobalt-formatted files and upload them to the CMS. Cobalt has a critical constraint: **no update or delete after creation**. Once uploaded, corrections require manual intervention in the Cobalt UI. This skill is therefore deliberately cautious — per-question STOP before each upload.
 
 Markers: `STOP:`, `ACTION:`, `CHECK:`, `[Conditional]`.
 
@@ -17,7 +17,7 @@ Markers: `STOP:`, `ACTION:`, `CHECK:`, `[Conditional]`.
 ACTION: Read `project.json`. Verify `gates.review == "pass"` and `phase >= 5`.
 
 [Conditional: review not complete OR any review gate failing]
-> STOP: "Phase 4 (review) hasn't passed. Current state: {{GATE_STATUS}}. Run `/mock-4-review` and address Critical issues before publishing. Once questions are moved to `published` they cannot be edited — we must not publish unreviewed content."
+> STOP: "Phase 4 (review) hasn't passed. Current state: {{GATE_STATUS}}. Run `/mock-4-review` and address Critical issues before publishing. Cobalt has no update/delete — we must not publish unreviewed content."
 
 ### CHECK 0 — Publish gate (HARD GATE)
 
@@ -34,139 +34,123 @@ Verify ALL of:
 [Conditional: any gate fails]
 > STOP: "Publish gate is BLOCKED: {{FAILED_GATES}}. Do not proceed. Go back to `/mock-3-draft` to fix, then re-run `/mock-4-review`."
 
+### CHECK 0.5 — Spec-point matching pre-flight (HARD GATE)
+
+Every question part must be cleanly mappable to one or more **specific** specification points BEFORE upload. "Cleanly mappable" means:
+
+- The named quantities, formulas, and concepts in the part appear verbatim or as a close paraphrase in the spec point's stated learning objective
+- No "judgement-call" surrogate tagging — the pattern "the closest spec point is X but the question actually tests Y, which isn't named anywhere in the spec" is FORBIDDEN
+- For multi-tag parts, at least ONE tag must be a clean primary match (supporting tags are allowed)
+
+**Why this gate exists:** Surrogate tagging at upload time is how off-spec content slipped past the pipeline before. The 2026-05-05 Edexcel 9PH0 Paper 1 Q3 incident — μ-based friction MCQ uploaded under surrogate tags 2.9 (Newton's 2nd Law) + 2.10 (Mass/Weight), then redesigned post-publish — was caused by treating spec-point matching as a soft flag rather than a hard gate. From now on: no clean match → no upload.
+
+**Procedure:**
+
+1. ACTION: Read the project's Master Syllabus CSV (path in `project.json.qualityGates.masterSyllabusPath`) and call `mcp__sme-content__getCourseStructure` for the project's course to retrieve the live `spcpt_` ID list.
+
+2. For each question part, identify the candidate spec point(s). Record a one-line **match rationale** stating exactly which spec-point learning objective the part tests, citing the spec-point name verbatim.
+
+3. CHECK each part's match rationale against this rubric:
+   - ✓ The rationale names a concept that appears in the spec point's stated objective.
+   - ✗ The rationale uses hedging language: "closest match", "approximate", "the part tests Y, which is similar to spec point X", "judgement call", "no exact match — using nearest neighbour".
+
+4. [Conditional: any part has no clean match — i.e. every candidate spec point requires hedging]
+> STOP: "Spec-point matching FAILED for {{PARTS}}. The following parts cannot be cleanly mapped to a specification point:
+>
+> {{PART_LIST_WITH_RATIONALES}}
+>
+> This is evidence of off-spec content. Do NOT upload.
+>
+> Route the part(s) back to `/spec-check` (use the Spec-Vocabulary Grep gate) or to `/mock-3-draft` for redesign. The 2026-05-05 Q3 friction incident on Edexcel 9PH0 Paper 1 was caught here, too late: surrogate-tagged with N2L+Mass/Weight when the actual content (coefficient of kinetic friction) was not in the Edexcel spec at all. We do not surrogate-tag any more."
+
+5. [Conditional: every part has a clean primary match]
+   - Record `spec_point_ids` and the match rationale per part in `publish/upload-log.md` BEFORE conversion begins (so the rationale is auditable even if upload is later abandoned).
+   - Proceed to Cobalt conversion.
+
 ## Script
 
 ACTION: Read `/cobalt-formatting` as a reference (the Cobalt markdown syntax rules).
 
-### ACTION — Verify CMS connectivity
+### ACTION — Per-question Cobalt conversion
 
-Check that the CMS MCP exposes the tools this skill needs: `createQuestion`, `updateQuestion`, `getCourseStructure`, `findQuestion`, `getMockExamStructure` (e.g. `mcp__sme-content__*`).
+For each question file in `Section A/Q*.md`:
 
-[Conditional: any tool missing]
-> STOP: "The CMS MCP isn't fully configured. Need: createQuestion, updateQuestion, getCourseStructure, findQuestion, getMockExamStructure. Can't proceed with publish until these are reachable."
+1. Read the SFMA
+2. Apply Cobalt conversion:
+   - Ensure `# Part a` / `## Problem` / `## Solution` structure
+   - Verify `$m{[N mark(s)]}{align=right}` on every part
+   - Verify `$f{...}` wraps final answers, `$w{...}` working, `$c{...}` commentary
+   - Verify `**Mark Scheme and Guidance**` ... `**End of Mark Scheme and Guidance**` callout blocks (not headings)
+   - Verify `**Examiner Tips and Tricks**` ... `**End of Examiner Tips and Tricks**` callouts
+   - Verify all equations use `$$...$$` (never `$...$`)
+   - Verify `^…^` / `~…~` for superscript/subscript (never Unicode)
+   - Verify no `---` horizontal rules, no emoji, no checkmarks
+3. Write the converted file to `publish/Q{{NN}}-cobalt.md`
+4. Log conversion to `project.json.questions[N].formatted = true`
 
-### STOP 1 — Destination identity
+### STOP 1 — First file review
 
-Ask the user for:
+> "Q01 converted to Cobalt format at `publish/Q01-cobalt.md`. Please skim it — does the format look right? If you spot any issue, I'll fix before converting the rest."
 
-> "Before I fire anything at the CMS, I need:
+USER: confirm or request fixes.
+
+[Conditional: issues] Fix the conversion logic, re-run Q01, ask again.
+
+### ACTION — Convert remaining questions
+
+After Q01 is approved, convert Q02–QN to `publish/Q{{NN}}-cobalt.md`.
+
+### STOP 2 — Upload consent
+
+> "All {{N}} questions converted to Cobalt format. Ready to upload via SME `createQuestion` MCP. **Reminder: once uploaded, Cobalt has no update/delete — corrections must be made manually in the Cobalt UI.** I'll STOP before each upload so you can approve each one. Proceed?"
+
+USER: confirm.
+
+### For each question, upload with per-question STOP:
+
+#### STOP (per question) — Upload confirmation
+
+> "Uploading Q{{NN}}: {{TOPIC}}, {{MARKS}} marks.
 >
-> 1. **Your CMS user ID** (`cusr_...`) — stamped on every create/update call for audit trail. If you've told me before I'll have it saved in memory.
-> 2. **Mock exam section ID(s)** — the `mepsec_...` IDs for each section of this paper (e.g. Section A, Section B). I can call `getMockExamStructure` with board / level / subject to look them up if you don't have them handy.
+> Preview: {{STEM_FIRST_LINE}}...
 >
-> Confirm both, or tell me to look them up."
+> Confirm upload? (yes / skip / abort)"
 
-USER: user ID + section IDs (or request lookup).
+USER: yes / skip / abort.
 
-ACTION: Persist the section IDs to `project.json.publish.sectionIds` for re-runs. Save the user ID to memory if not already captured.
+[Conditional: skip] Move to next question; log `project.json.questions[N].uploaded = "skipped"`.
 
-### ACTION — Per-question Cobalt conversion (strip and split)
+[Conditional: abort] Stop the script entirely; log whichever questions have uploaded so far.
 
-For each SFMA in `Section A/Q*.md` and `Section B/Q*.md`:
+[Conditional: yes]
 
-1. **Read** the SFMA.
-2. **Strip** the following (they don't belong in the Cobalt payload):
-   - `# Question NN — Topic` title header
-   - Horizontal rules (`---`)
-   - `# Part a` / `## Problem` / `## Solution` structural headers (these become part boundaries + `problem`/`solution` fields in the payload)
-   - `**Model Answer**` / `**End of Model Answer**` wrappers — **NOT a valid Cobalt callout**; leaving them in renders as plain bold text. They should never be in a well-drafted SFMA in the first place (see `/mock-3-draft` Rules), but strip defensively.
-   - `$m{[N mark(s)]}{align=right}` in the Problem section for single-part questions — marks go in Cobalt's per-part `marks` field, not in the problem text.
-   - **Keep** `{align=right}[N]` when it labels (i)/(ii) sub-parts inside a single part's problem.
-3. **Split MCQ options** out of the problem into the `choices` array:
-   - If the option text is a value, expression, or full statement → use that string as `content`
-   - If the option is a letter-only reference to a diagram label or table row → pass `"content": ""` — Cobalt auto-renders the A/B/C/D labels; passing the letters as content duplicates them
-   - Set `is_correct: true` on the correct choice; positional order determines which letter is which (first choice = A, second = B, etc.)
-4. **Structured-question shared stems:** embed the shared question stem in **Part (a)'s `problem` field**. Subsequent parts contain only their own sub-question. Students refer back to part (a) for stem context.
-5. **Sub-parts (i)/(ii):** keep as a single Cobalt part with combined marks (e.g. 2+2 = 4) and inline `{align=right}[2]` indicators preserving the split in the problem text.
-6. **Image placeholders:** convert local `[IMAGE: …]` references to Cobalt form:
-   - If a CDN URL is available → `![alt text](https://cdn.savemyexams.com/uploads/...)`
-   - If no CDN URL → `{align=center} **[DIAGRAM: full alt-text]**` — flag for manual attachment post-upload via Cobalt UI or `updateQuestion` once the CDN URL is known
-7. **(Optional audit trail)** Write the converted payload preview to `publish/Q{{NN}}-cobalt.md`.
+#### ACTION — Upload via SME MCP
 
-### STOP 2 — Upload consent (batched preview)
+Call the SME `createQuestion` MCP tool (exact tool name depends on the SME MCP; check available `mcp__sme__*` tools).
 
-Present a consolidated table of every question to be uploaded:
+Log result to `publish/upload-log.md`:
+```markdown
+- {{DATETIME}} — Q{{NN}}: {{RESULT}} (Cobalt ID: {{ID}})
+```
 
-> "Ready to upload {{N}} questions to section {{section_id}} via `createQuestion`. Preview:
->
-> | Q | Topic | Parts | Marks | Difficulty | Calc | Image? | Stem preview |
-> |---|---|---|---|---|---|---|---|
-> | Q01 | … | … | … | … | … | … | "…" |
-> | … | … | … | … | … | … | … | "…" |
->
-> Conventions applied:
-> - Questions are created with status `pending_review` — edits remain possible via `updateQuestion` until publication.
-> - {{N_WITH_IMAGES}} questions have `[DIAGRAM: …]` placeholders needing manual attachment post-upload.
-> - {{N_CW_OMITTED}} questions have `command_word` omitted because the approved board CW isn't in the MCP enum (e.g. Edexcel's 'Criticise'). The problem text still contains the correct CW so students see it.
-> - Distractor explanations are paragraphs (not bullets). `**Model Answer**` wrappers stripped. Letter-only MCQ choices have empty content (Cobalt auto-renders labels).
->
-> Fire all {{N}} uploads in parallel? (yes / abort / review-specific-questions)"
+Update `project.json.questions[N].uploaded: true`, `uploadedAt: "{{DATETIME}}"`, `cobaltId: "{{ID}}"`.
 
-USER: yes / abort / partial.
+[Conditional: upload failed] STOP — do NOT proceed to next question. Diagnose the failure.
 
-[Conditional: abort] Stop the script.
+### CHECK 1 — All uploads logged
 
-[Conditional: partial] Loop over user-specified questions with per-question preview and individual consent.
-
-### ACTION — Fire uploads in parallel
-
-For each approved question, call `createQuestion` with:
-- `cms_user_id`
-- `question_set_id` (the relevant Section mepsec_xxx)
-- `difficulty` (easy / medium / hard / very_hard from per-question tracker)
-- `style: "exam_whole"` (or as appropriate)
-- `comment`: short per-question note (e.g. "Paper 1 Section A Q2 — v-t graph projectile")
-- `parts`: array (1 for MCQ, N for multi-part structured)
-
-For each part:
-- `question_type`: `multiple_choice` or `structured`
-- `marks`: integer
-- `problem`: markdown (stem + sub-question; MCQ has stem only, no A/B/C/D options listed)
-- `solution`: markdown (model answer + MS&G + ET&T)
-- `command_word`: from `.project/command-word-list.md` — **if the approved CW isn't in the MCP enum, omit the field** and keep the word in the problem text
-- `calculator`: `allowed` / `not_allowed` / `not_applicable`
-- `format`: omit by default; set `extended_response` for starred/QWC extended-response parts
-- `choices` (MCQ only): array of `{content, is_correct}` objects
-- `source: "original_content"`
-
-Log results to `publish/upload-log.md` and update `project.json.questions[N]` with `uploaded: true`, `uploadedAt`, `cobaltId`.
-
-[Conditional: any upload fails] STOP. Diagnose and ask the user before retrying.
-
-### ACTION — Attach spec-point IDs (updateQuestion pass)
-
-1. Call `getCourseStructure({course_id: <crs_xxx>})` once to retrieve all spec points for the course. Build a name → ID lookup map.
-2. For each question, map each part's content to 1–3 spec points using the project's Master Syllabus CSV (`references/{{BOARD}}-Master-Syllabus.csv` or equivalent).
-3. Fetch all uploaded questions via `findQuestion({question_ids: [...]})` to get each part's `part_id` (`qstnprt_xxx`). **Note:** this can return a large payload; if it exceeds the tool-call limit, the harness writes it to disk — extract the ID mapping with `python` or `jq`.
-4. Fire `updateQuestion` in parallel, one call per question:
-   ```
-   {
-     cms_user_id,
-     question_id: "qstn_xxx",
-     comment: "Attach spec-point IDs per Master Syllabus",
-     update_parts: [
-       {id: "qstnprt_xxx", spec_point_ids: ["spcpt_xxx", ...]},
-       ...
-     ]
-   }
-   ```
-5. Append the spec-point mapping table to `publish/upload-log.md`.
-
-### CHECK 1 — All uploads logged and tagged
-
-After all uploads + spec-point patches, verify:
-- Every `questions[N].uploaded` is `true` or `"skipped"`
+After all questions processed, verify:
+- Every `questions[N].uploaded` is `true` or `"skipped"` (not `false`/`null`)
 - Every uploaded question has a `cobaltId`
-- `publish/upload-log.md` has a row per question with Cobalt ID + spec-point mapping
-- Diagrams awaiting manual attachment are listed in the log under "Post-upload actions required"
+- `publish/upload-log.md` has a line per question
 
 ### ACTION — Cross-qualification reuse map
 
 For each question, consult the Master Syllabus and tracker CSV's "Suitable for ..." column:
 - Identify which sister qualifications could reuse this question
-- Identify blockers (spec points unique to this qualification, board-specific command words, etc.)
+- Identify blockers (spec points that are unique to this qualification)
 
-Write to `publish/reuse-map.md` using `.claude/templates/reuse-map.template.md`.
+Write the reuse map to `publish/reuse-map.md` using `.claude/templates/reuse-map.template.md`.
 
 ### ACTION — Update project.json
 
@@ -174,36 +158,33 @@ Set `gates.publish: "pass"`, `phase: 5`, `status: "complete"`, `nextStep: "/hand
 
 ### ACTION — Invoke /handover
 
-Trigger the `/handover` skill automatically to capture the session summary.
+Trigger the `/handover` skill automatically to capture the session summary and back up the vault.
 
-### Final output
+### Final output to user
 
 ```
 Publish complete for {{PROJECT_NAME}}.
 
-Uploaded: {{N}} questions to Cobalt (all pending_review)
-Spec-point IDs attached: {{N}} questions / {{M}} parts
-Diagram placeholders awaiting manual attachment: {{N}}
-Command-word omissions (enum gap): {{N}}
+Uploaded: {{N}} questions to Cobalt
+Skipped: {{N}}
+Failed: {{N}} (see publish/upload-log.md)
 
 Artefacts:
-- publish/upload-log.md      (Cobalt IDs + spec-point mapping + image-attach list)
+- publish/Q*-cobalt.md (converted files)
+- publish/upload-log.md
 - publish/reuse-map.md
-- publish/Q*-cobalt.md        (converted SFMAs, optional audit)
 
-Next:
-- Attach {{N}} diagrams via the Cobalt UI, or supply CDN URLs for an updateQuestion patch
-- Content review in Cobalt CMS by the reviewer
-- When content is finalised, move questions from pending_review → published
-  (no update/delete after that point)
+Reuse potential:
+- {{TARGET_QUAL_1}}: {{N}} questions reusable
+- {{TARGET_QUAL_2}}: {{N}} questions reusable
+
+The project is complete. /handover has been triggered to checkpoint the session.
 ```
 
 ## Rules
 
-- **NEVER upload on a failed publish gate.** Published questions cannot be edited or deleted.
-- **Batched preview + single consent before upload.** Do not fire `createQuestion` without showing the consolidated table first. For most mock papers this is the efficient default; use per-question STOP only if the user requests it or the content is unusually sensitive.
-- **`updateQuestion` is available for `pending_review` questions** — treat upload as a checkpoint, not an irrevocable commit. Fixes after upload are cheap.
-- **Strip `**Model Answer**` wrappers during conversion.** They are not a valid Cobalt callout and would render as plain bold text. (They should never be in a well-drafted SFMA anyway — see `/mock-3-draft` Rules.)
-- **Log every upload and spec-point patch** to `publish/upload-log.md` — it's the recoverability record if the MCP hiccups.
-- **If the CMS MCP is unavailable,** STOP. Do not try to fall back to manual upload; the authoring team needs the Cobalt IDs to route content correctly.
-- **`command_word` enum may have gaps** for some board-specific command words (e.g. Edexcel's 'Criticise'). Omit the field rather than force a mismatch; preserve the word in the problem text so students see it.
+- **NEVER upload on a failed publish gate.** This is the single most important rule in this skill. Better to ship late than ship bad content that cannot be corrected.
+- **NEVER upload without a clean spec-point match.** Surrogate spec-point tagging is forbidden — if the closest spec point requires hedging language ("approximately", "judgement call", "nearest neighbour"), the question is off-spec and must be redesigned, not tagged-and-uploaded. CHECK 0.5 enforces this.
+- **Per-question STOP before upload is mandatory.** Do not batch upload silently.
+- **Log every action to `publish/upload-log.md`** — if something goes wrong with the MCP, the log is the only recoverability path.
+- **If the SME MCP is unavailable,** STOP and tell the user — do not skip to "manual upload".
