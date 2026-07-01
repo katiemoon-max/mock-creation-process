@@ -10,6 +10,24 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Task
 
 You are drafting full Student Friendly Model Answers (SFMAs) in small batches. The pipeline deliberately forces batch sizes of 2–3 to keep constraints close in context — this addresses the "Claude ignores constraints stated once" failure mode.
 
+## Success Criteria
+
+A question is "drafted" only when every per-question hard gate verifies. Log each outcome to `project.json.questions[N].*` as named.
+
+**Per question (must verify before moving to the next):**
+1. No information leakage between parts → verify: CHECK 2 (infoLeakageAudit)
+2. Every stem fact is required by at least one part → verify: CHECK 3 (stemUsageAudit)
+3. Model answer at target CEFR level, within word ceiling → verify: CHECK 4 (modelAnswerTwoPass)
+4. Every MCQ distractor cites a named misconception by ID → verify: CHECK 5 (MCQ only)
+5. Every MS&G marking point is Smart-Mark-ready → verify: CHECK 6 (markSchemeAudit; structured parts)
+
+**Per batch:**
+5. Batch size ≤ 3 (constraint-drift guard) → verify: STOP 1
+6. Constraints repeated back verbatim before drafting starts → verify: CHECK 1
+7. All questions in batch have `status: "drafted"` and all gate flags set → verify: inner-loop end
+
+**Phase advance (to Phase 4):** only when every question in the outline is drafted. Then set `gates.draft: "pass"`, `phase: 4`.
+
 Markers: `STOP:`, `ACTION:`, `CHECK:`, `[Conditional]`.
 
 ## Prerequisites
@@ -27,6 +45,10 @@ ACTION: Read the following files fresh at the start of every batch (even if you'
 - `.project/command-word-list.md`
 - `.project/misconception-bank.md`
 - `.project/ao-classification-guide.md`
+- `.project/catalogues/ao-breadth-map.md`
+- `.claude/context/mark-scheme-standard.md` (universal MS principles + pre-flight gate)
+- `.project/mark-scheme-conventions.md` (this course's learned MS conventions)
+- `.project/ms-exemplars/` (creator-approved MS format exemplars for this course)
 - The outline file for the question range specified
 - The tracker CSV for illustration sources
 
@@ -67,12 +89,14 @@ This is deliberately verbose. It's the cheapest way to keep constraints load-bea
 
 Read `.project/catalogues/ao-question-type.md` for parallels to the question's topic + command word + AO. Note 1–2 past-paper references to cite in the outline's "Notes" column.
 
+Also check `.project/catalogues/ao-breadth-map.md` for the AO's command-word / task-type palette. Draft each part with the command word and task type the outline assigned — do NOT collapse a planned format into the per-AO prototype (AO1 ≈ State, AO2 ≈ Calculate, AO3 ≈ Deduce). Where the outline leaves phrasing open, pick from the breadth map's palette and prefer a command word / task archetype not already used elsewhere in the paper. This is the drafting-time guard against the "same-y questions" regression that CHECK 10 gates at outline and Review 8 re-checks at review.
+
 #### ACTION — Stem only (draft with NO solution yet)
 
 Draft ONLY the question stem and each part's prompt — no model answer, no MS&G, no ET&T. Write to a scratch buffer (not yet the final SFMA file).
 
 - Use the command word approved for this part
-- Mark allocation in `$m{[N mark(s)]}{align=right}` at the end of each part
+- Mark allocation in `{align=right}[N]` at the end of each part stem (Cobalt-canonical syntax — NOT `$m{[N mark(s)]}{align=right}`, which is the inline-working syntax)
 - Image placeholder where required: `[IMAGE: {{DESCRIPTION}}]`
 
 #### CHECK 2 — Information-leakage audit (HARD GATE, pre-solution)
@@ -126,16 +150,26 @@ Log to `project.json.questions[N].modelAnswerTwoPass = "pass"`.
 
 Only include if the Model Answer doesn't already show every mark-earning pathway.
 
-Apply the Smart Mark rules (from the existing draft-questions spec):
-- **Lists:** Accept / Do not accept for each listed item; "Any N from:" grouping
-- **Calculations:** specify sig figs in stem or MS; final answer on its own line; ecf noted where applicable
-- **Show that:** MS shows unrounded answer to 2 extra s.f. beyond the stem's rounded value
-- **Definitions:** precise language, run through NotebookLM for consistency if unsure
-- **Multi-point:** explicit when one statement earns multiple marks
-- **Graph/data:** state ±½ small square tolerance
-- **Alternatives:** list any valid equations Smart Mark might reject
+Build the MS&G against **both layers** of `.claude/context/mark-scheme-standard.md`:
+- **Universal principles (Layer 1):** every marking point discrete and closed; MS demand == the command word's demand; closed accept-lists (no "any reasonable"); explicit ecf for every cross-part dependency, traced through the whole chain; grouping explicit; precision, tolerance and units stated; alternative valid responses enumerated; no commentary inside MS&G.
+- **This course's conventions (Layer 2):** apply `.project/mark-scheme-conventions.md` for the course's precision convention, "show that" extra-figure count, tolerance idiom, mark-type codes and banding style; match the format of the creator-approved `.project/ms-exemplars/`.
 
 Skip MS&G for MCQs.
+
+#### CHECK 6 — Mark-scheme Smart-Mark pre-flight (HARD GATE, structured parts)
+
+Run the pre-flight gate (§9 of `mark-scheme-standard.md`) on every marking point of this question's MS&G before moving on. Confirm, per marking point:
+
+- discrete, closed, tag-able; **MS demand == the command word's demand** (if the natural MS demand doesn't match, change the command word — do not bend the MS)
+- accept-lists enumerated (no "any reasonable"); ecf explicit through the whole chain; grouping explicit, no silent bundling
+- precision, tolerance and units stated **in this course's convention** (`.project/mark-scheme-conventions.md`)
+- alternative valid responses enumerated; no commentary inside MS&G; not a duplicate of a complete Model Answer; no claims-compliance gap
+- levelled parts built in the course's banding style; overall format matches `.project/ms-exemplars/`
+
+[Conditional: any marking point fails]
+Fix the MS&G before drafting continues. If the fix is a command-word change, update the outline's command-word plan for that part too.
+
+Log to `project.json.questions[N].markSchemeAudit = "pass"`. (MCQs have no MS&G — skip this gate for them; MCQ distractor rigour is covered by CHECK 5.)
 
 #### ACTION — MCQ distractors (if MCQ)
 
@@ -176,9 +210,24 @@ If `Illustration source: creator`:
 - Write a clear `[IMAGE: {{DESCRIPTION}}]` placeholder
 - Update tracker: `illustrationStatus: pending creator upload`
 
-#### ACTION — Assemble SFMA
+#### ACTION — Assemble SFMA (Cobalt-canonical from the start)
 
 Write to `Section A/Q{{NN}}-{{TopicSlug}}.md` using `.claude/templates/sfma.template.md`. Remove the HTML comment block from the template before committing.
+
+**The output MUST match the course's canonical Cobalt format.** Reference: the creator-approved exemplars in `.project/ms-exemplars/` (produced by the MS calibration step in `/mock-1-research`), which are seeded from the SME Gold Standard SFMA library (four sets — defined-mark closed/open, levelled, MCQ; set IDs in `.claude/context/mark-scheme-standard.md`) — read these before drafting if the format is unfamiliar. Eliminating reformatting at publish time is the whole point of this gate.
+
+**Cobalt-canonical structural checklist (every SFMA must satisfy):**
+
+1. Single H1 `# Question N — Topic` at the top of the file only.
+2. Common-context stem (shared scenario for all parts) sits directly under that H1, BEFORE the first `---`. Stem-level image placeholders go here.
+3. Each part opens with `# Part a` / `# Part b` H1, then `## Problem` and `## Solution` H2s.
+4. Horizontal rule `---` between every part.
+5. Tariff at end of each part stem: `{align=right}[N]` (NOT `$m{[N mark(s)]}{align=right}` — that syntax is for inline-working markers only).
+6. Inline mark markers in working steps: `$m{[1 mark]}` placed at the end of the line that earns the mark. Centre-aligned working: `{align=center} $$equation$$ $m{[1 mark]}` on one line.
+7. MS&G uses paragraph-style points with inline `$m{[N mark]}` markers, plus explicit `Accept` and `Do not accept` paragraph clauses where the command word's mark scheme distinguishes them.
+8. Multi-mark "Explain" parts use **MP1 / MP2 / MP3 (key-term anchors: ...)** prefix per mark for Smart-Mark anchoring.
+9. ecf chains stated explicitly: which mark carries ecf, from which earlier part.
+10. Model-answer content sits directly under `## Solution` — NO `**Model Answer**` / `**End of Model Answer**` wrappers (not a valid Cobalt callout). MS&G + ET&T wrappers ARE valid and required.
 
 #### ACTION — Update project.json
 
@@ -202,6 +251,9 @@ Set `gates.draft: "pass"`, `phase: 4`, `nextStep: "/mock-4-review"`.
 - **Every MCQ distractor cites a misconception.** No exceptions.
 - **Two-pass model answer.** The first draft is expected to be too academic — the second pass is where it becomes student-appropriate.
 - **Cobalt formatting is not optional.** Every SFMA goes through Cobalt; violations cost time to fix post-hoc.
+- **Cobalt-canonical format from the start — do NOT defer to publish phase.** Drafted SFMAs must match the published Paper 1 format exactly: `# Question N — Topic` H1, common stem before first `---`, `# Part a` H1 per part, `## Problem` + `## Solution` H2s, `---` between parts, `{align=right}[N]` tariffs, inline `$m{[N mark]}` markers in working, paragraph-style MS&G with explicit `Accept` / `Do not accept` clauses. Reference: the creator-approved `.project/ms-exemplars/`. Reformatting at `/mock-5-publish` time is a 30–60 minute cost per paper — absorb it here.
+- **Design command words and contexts from the breadth map.** Consult `.project/catalogues/ao-breadth-map.md` when drafting; honour the outline's planned variety and don't regress a planned format into the per-AO prototype. Enforced upstream by CHECK 10 (outline) and downstream by Review 8 (review).
+- **Every MS&G passes the Smart-Mark pre-flight (CHECK 6) before a question is marked "drafted".** Build against `.claude/context/mark-scheme-standard.md` (universal) plus `.project/mark-scheme-conventions.md` and `.project/ms-exemplars/` (this course, learned in `/mock-1-research`). If the mark scheme wants a demand the command word doesn't license, change the command word — not the mark scheme.
 - **Do not invent past-paper parallels.** Use the catalogues from `.project/catalogues/`.
 - **Respect the exclusion list verbatim.** If a topic or context on the exclusion list starts creeping in, STOP and ask the user.
 - **Do NOT wrap the model answer in `**Model Answer**` / `**End of Model Answer**`.** It is not a valid Cobalt callout (only MS&G, ET&T, Worked Example, Case Study, Blockquote are). Write the solution content directly under the `## Solution` heading — no wrapper. Phase 5 publish strips these defensively, but they shouldn't be in the SFMA to begin with.

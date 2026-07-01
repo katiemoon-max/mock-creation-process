@@ -1,6 +1,6 @@
 ---
 name: mock-5-publish
-description: Phase 5 publishing. Gates on all review passes, converts SFMAs to Cobalt format, uploads via SME createQuestion MCP (per-question STOP for safety — no update/delete in Cobalt after creation), and writes the cross-qualification reuse map. Final phase of the mock paper pipeline.
+description: Phase 5 publishing. Gates on all review passes, converts SFMAs to Cobalt format, uploads via SME createQuestion MCP (per-question STOP for safety — questions in `pending_review` can still be patched via `updateQuestion`, but no update/delete is possible once published), and writes the cross-qualification reuse map. Final phase of the mock paper pipeline.
 user_invocable: true
 arguments: ""
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash
@@ -8,7 +8,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash
 
 # Mock Paper Publish (Phase 5)
 
-You convert drafted SFMAs into Cobalt-formatted files and upload them to the CMS. Cobalt has a critical constraint: **no update or delete after creation**. Once uploaded, corrections require manual intervention in the Cobalt UI. This skill is therefore deliberately cautious — per-question STOP before each upload.
+You convert drafted SFMAs into Cobalt-formatted files and upload them to the CMS. Cobalt has a critical constraint: **once a question is published, no update or delete is possible**. Questions in `pending_review` can still be patched via `updateQuestion` (so review-fix sweeps after upload are supported), but once they move to `published` the only recourse is manual intervention in the Cobalt UI. This skill is therefore deliberately cautious — per-question STOP before each upload.
 
 Markers: `STOP:`, `ACTION:`, `CHECK:`, `[Conditional]`.
 
@@ -17,7 +17,7 @@ Markers: `STOP:`, `ACTION:`, `CHECK:`, `[Conditional]`.
 ACTION: Read `project.json`. Verify `gates.review == "pass"` and `phase >= 5`.
 
 [Conditional: review not complete OR any review gate failing]
-> STOP: "Phase 4 (review) hasn't passed. Current state: {{GATE_STATUS}}. Run `/mock-4-review` and address Critical issues before publishing. Cobalt has no update/delete — we must not publish unreviewed content."
+> STOP: "Phase 4 (review) hasn't passed. Current state: {{GATE_STATUS}}. Run `/mock-4-review` and address Critical issues before publishing. Once a question moves from `pending_review` to `published`, no update or delete is possible — we must not publish unreviewed content."
 
 ### CHECK 0 — Publish gate (HARD GATE)
 
@@ -102,11 +102,23 @@ After Q01 is approved, convert Q02–QN to `publish/Q{{NN}}-cobalt.md`.
 
 ### STOP 2 — Upload consent
 
-> "All {{N}} questions converted to Cobalt format. Ready to upload via SME `createQuestion` MCP. **Reminder: once uploaded, Cobalt has no update/delete — corrections must be made manually in the Cobalt UI.** I'll STOP before each upload so you can approve each one. Proceed?"
+> "All {{N}} questions converted to Cobalt format. Ready to upload via SME `createQuestion` MCP.
+>
+> **Reminder on Cobalt edit window:** questions land in `pending_review` and can still be patched via `updateQuestion` while in that state. Once Katie moves them to `published` via the Cobalt UI, no update or delete is possible.
+>
+> Two options for STOP cadence:
+> 1. **Per-question STOP** (default for sensitive papers — fewer than 6 questions, or unusual content): I'll STOP before each upload so you can approve each one. Safer, slower.
+> 2. **Consolidated preview + batch fire** (default for routine papers — 10+ questions, all gates passed cleanly): I'll show you a single preview table (Q#, topic, difficulty, marks, stem first line) and fire all uploads in parallel after one approval. Validated on the 2026-04-22 Paper 1 publish.
+>
+> Which cadence?"
 
-USER: confirm.
+USER: choose cadence + confirm.
 
-### For each question, upload with per-question STOP:
+### Upload — branch by cadence chosen at STOP 2
+
+[Conditional: per-question cadence]
+
+For each question, upload with per-question STOP:
 
 #### STOP (per question) — Upload confirmation
 
@@ -117,6 +129,27 @@ USER: confirm.
 > Confirm upload? (yes / skip / abort)"
 
 USER: yes / skip / abort.
+
+[Conditional: consolidated cadence]
+
+Present a single preview table covering every question:
+
+```
+| Q  | Topic              | AO    | Marks | Difficulty | Stem first line                        |
+|----|--------------------|-------|-------|------------|-----------------------------------------|
+| 01 | Photoelectric MCQ  | AO1   | 1     | M          | Monochromatic light is incident on...   |
+| 02 | ...                | ...   | ...   | ...        | ...                                     |
+```
+
+#### STOP — Batch upload confirmation
+
+> "Preview table above shows all {{N}} questions ready for upload. Fire all in parallel? (yes / abort / drop-back-to-per-question)"
+
+USER: yes / abort / drop-back.
+
+[Conditional: yes] Fire all `createQuestion` calls in parallel (single message, N tool calls). Report Cobalt IDs in a table.
+
+[Conditional: drop-back] Resume the per-question cadence above starting from Q01.
 
 [Conditional: skip] Move to next question; log `project.json.questions[N].uploaded = "skipped"`.
 
@@ -183,8 +216,10 @@ The project is complete. /handover has been triggered to checkpoint the session.
 
 ## Rules
 
-- **NEVER upload on a failed publish gate.** This is the single most important rule in this skill. Better to ship late than ship bad content that cannot be corrected.
+- **NEVER upload on a failed publish gate.** This is the single most important rule in this skill. Better to ship late than ship bad content that needs Cobalt-UI patching after publish.
 - **NEVER upload without a clean spec-point match.** Surrogate spec-point tagging is forbidden — if the closest spec point requires hedging language ("approximately", "judgement call", "nearest neighbour"), the question is off-spec and must be redesigned, not tagged-and-uploaded. CHECK 0.5 enforces this.
-- **Per-question STOP before upload is mandatory.** Do not batch upload silently.
+- **Upload cadence is creator's choice at STOP 2.** Per-question STOP for sensitive content (few questions, novel formats); consolidated preview + batch fire for routine papers with all gates passed cleanly. Default to per-question only when creator does not specify.
+- **`updateQuestion` is available while a question is in `pending_review`** — so fix sweeps after upload are supported, but only inside that edit window. Plan review-fix sweeps before Katie moves anything to `published` in the Cobalt UI.
+- **After any post-gate rework in Cobalt, run `/cobalt-sync --full`.** If questions are edited or re-scoped in the Cobalt UI after upload — whether a fix sweep in `pending_review` or a later content rework — the local SFMA files, tracker and project.json drift from the shipped paper. Session-startup `--check` only catches header drift (marks, parts, status); it does NOT catch content changes such as a changed context, stem or command word. Run `/cobalt-sync --full` after the rework so the local mirror and any evaluation artefacts track what actually shipped. (Paper 1's local Section B mirror drifted for weeks after a 2026-05-22 rework because only `--check` ever ran — the local files still showed a conical pendulum long after Cobalt had moved to a washing-machine-drum question.)
 - **Log every action to `publish/upload-log.md`** — if something goes wrong with the MCP, the log is the only recoverability path.
 - **If the SME MCP is unavailable,** STOP and tell the user — do not skip to "manual upload".

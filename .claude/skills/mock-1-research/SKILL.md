@@ -1,6 +1,6 @@
 ---
 name: mock-1-research
-description: Phase 1 research. Builds three catalogues (AO question-type, MCQ, spec-coverage-map) using BOTH direct analysis of markdown past papers AND NotebookLM synthesis as independent cross-checks. Extends the misconception bank with distractor archetypes discovered during MCQ cataloguing. Required before /mock-2-outline.
+description: Phase 1 research. Builds three catalogues (AO question-type, MCQ, spec-coverage-map) using BOTH direct analysis of markdown past papers AND NotebookLM synthesis as independent cross-checks. Also builds an AO breadth map (per-AO palette of command words × task types × contexts) so drafting designs from a menu rather than defaulting to one archetype per AO. Calibrates the course's mark-scheme conventions by drafting a creator-reviewed sample of exemplar SFMAs (hard gate). Extends the misconception bank with distractor archetypes discovered during MCQ cataloguing. Required before /mock-2-outline.
 user_invocable: true
 arguments: ""
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Task, mcp__notebooklm__ask_question, mcp__notebooklm__get_health, mcp__notebooklm__select_notebook
@@ -166,6 +166,22 @@ Content to extract from research:
 
 This file is the single source of board-specific knowledge. The pipeline skills (`/mock-2-outline`, `/mock-3-draft`, `/mock-4-review`) read from it rather than embedding board-specific examples in their own text. This keeps the skills subject/level/course-agnostic and makes the process replicable for any board.
 
+### ACTION — Produce `.project/catalogues/ao-breadth-map.md`
+
+Dispatch a short `general-purpose` agent to synthesise an **AO breadth map** from `ao-question-type.md` + the past-paper reads + `.project/command-word-list.md`. This is distinct from the AO classification guide (which answers "is this mark AO1/AO2/AO3?"): the breadth map answers "what is the FULL palette of ways this board tests each AO?" — so drafting designs from a menu rather than defaulting to one archetype per AO (the "same-y questions" failure mode: AO1 ≈ State, AO2 ≈ Calculate, AO3 ≈ Deduce).
+
+Target file: `{{PROJECT_DIR}}/.project/catalogues/ao-breadth-map.md`
+
+For each AO (AO1, AO2, AO3), tabulate from the past papers:
+- **Command words** used to test it, with rough frequency (e.g. AO1 is not only "State" — also Describe, Give, Label, Complete, Identify, Write-an-equation, Sketch-a-known-diagram).
+- **Task archetypes** (e.g. define, recall-a-mechanism, complete-a-diagram, direct calculation, multi-step calculation, resolve-and-apply, graph-read, evaluate-a-claim, compare-data-to-a-model, plan/refine a procedure).
+- **Context types** (theoretical, practical/apparatus, data-handling, real-world scenario, historical).
+- **Real past-paper examples** (refs) for each — no inventions.
+
+End with a **palette summary per AO**: the complete set of command words and task archetypes observed, plus a one-line "prototype trap" note naming the single most over-used archetype to consciously vary away from (e.g. "AO2 default = 'Calculate'; vary with Show that / Determine / resolve-and-apply / graph-read").
+
+`/mock-2-outline` gates the outline's per-AO variety against this file (CHECK 10); `/mock-4-review` re-checks it on the drafted paper (Review 8).
+
 ### ACTION — Merge MCQ catalogue's new misconceptions into the bank
 
 The MCQ catalogue's Appendix flags new misconception candidates (typically 20–60 entries for a Paper with comprehensive MCQ analysis). Dispatch a single short agent to:
@@ -193,9 +209,32 @@ Read the spec-coverage map's analysis section. Reflect:
 
 Write these reflections to `project.json.research.coverageGaps` and `research.heavilyTested`.
 
+### ACTION — MS calibration (HARD GATE): course mark-scheme conventions + exemplars
+
+The mark-scheme rules that vary by course are **learned here, not prescribed**. This produces the Layer-2 inputs that the MS pre-flight gate in `/mock-3-draft` and the `marking-realism-checker` depend on. See `.claude/context/mark-scheme-standard.md` for the two-layer model (universal principles + learned course conventions).
+
+1. **Select a calibration sample.** From `ao-question-type.md` + the past papers, pick a small set (typically 4–6) of real past-paper questions that between them span the course's full range of **mark-scheme requirements** — each distinct response mode and marking convention the catalogues reveal. Cover, wherever the course uses them: a multi-step calculation with ecf; a "show that"; a list / "any N from"; an extended-prose or levelled/banded (QWC) part; a graph/data read-off with tolerance; a define/state recall; a diagram/completion mark. Skip modes the course doesn't use.
+
+2. **Draft SME-format SFMAs for the sample.** For each sampled question, write the full SFMA (stem + Model Answer + MS&G + ET&T) in SME house format, using the **real past-paper mark scheme as ground truth** for what earns each mark. Match the house format demonstrated in the **Gold Standard SFMA library** — the four cross-subject exemplar sets (defined-mark closed/open, levelled, MCQ; set IDs in `.claude/context/mark-scheme-standard.md`); pull the closest-matching type via `findQuestion` if a format is unfamiliar. Apply `/cobalt-formatting` and the universal principles in `mark-scheme-standard.md`. Because these calibrate against a *known* question, the official mark scheme is the check on your formatting.
+
+3. **STOP — creator review (mandatory).**
+> "MS calibration for {{PROJECT_NAME}}: I've drafted {{N}} SME-format SFMAs spanning the course's mark-scheme types ({{LIST_MODES}}), each formatted from the real past-paper mark scheme. Please review and tweak the mark schemes to the house standard you want — your edits become the reference pattern for drafting the whole paper. What would you change?"
+
+Capture the creator's edits. Approved files → `.project/ms-exemplars/`.
+
+4. **Synthesise `.project/mark-scheme-conventions.md`** from the approved exemplars — the Layer-2 dimensions in `mark-scheme-standard.md` (response modes and their command words, precision convention, "show that" extra-figure count, tolerance idiom, mark-type codes / ecf notation, banding structure + anchoring, list/grouping idiom, accept/reject idiom).
+
+5. **Flag divergences.** Where the course's real mark schemes need a convention that differs from `mark-scheme-standard.md` or `/cobalt-formatting`, record it in a "Divergences from global rules" section of `mark-scheme-conventions.md` and surface it:
+> "The {{COURSE}} mark schemes differ from our global rules here: {{LIST}}. Update the global rule, or keep it course-local? (e.g. {{EXAMPLE}})"
+
+Apply the creator's decision — edit `/cobalt-formatting` or `mark-scheme-standard.md` if they choose global; otherwise keep it in the conventions file.
+
+**HARD GATE:** research does not complete without `.project/ms-exemplars/` populated (creator-approved) and `.project/mark-scheme-conventions.md` written.
+
 ### ACTION — Update project.json
 
 - Set `gates.research: "pass"`, `phase: 2`, `nextStep: "/mock-2-outline"`.
+- Set `gates.msCalibration: "pass"` **only** when `.project/ms-exemplars/` is populated (creator-approved) and `.project/mark-scheme-conventions.md` is written; record their paths under `research.markSchemeCalibration`. Research is NOT complete without this — do not set `gates.research: "pass"` if MS calibration hasn't passed.
 - Under `research`: record catalogue file paths, entry counts, coverage gaps, heavily-tested SPs, source discrepancies.
 
 ### Final output to user
@@ -211,7 +250,13 @@ Catalogues written:
 Board conventions captured: .project/board-conventions.md
 (stem phrasings, opening archetypes, AO3 pattern, MCQ format distribution, Show-that frequency, question-count norm, mark tariff norms)
 
+AO breadth map captured: .project/catalogues/ao-breadth-map.md
+(per-AO palette of command words × task archetypes × contexts — the design menu that prevents same-y questions)
+
 Misconception bank extended: +{{N}} new entries (now {{TOTAL}} total).
+
+MS calibration: {{N}} exemplar SFMAs approved → .project/ms-exemplars/
+Course MS conventions → .project/mark-scheme-conventions.md ({{K}} divergences from global rules flagged)
 
 Coverage flags:
 - Heavily-tested spec points (avoid re-running without novel context): {{LIST}}
@@ -229,3 +274,4 @@ Next: /mock-2-outline
 - **Record discrepancies between sources** — disagreement is valuable signal, not noise.
 - **Every entry cites a real paper-question ref.** Flag any fabrication hallucinated by NotebookLM.
 - If the markdown past papers haven't been converted from PDFs, STOP and tell the user — Phase 1 depends on them.
+- **MS calibration is a hard gate.** Research is not complete until the creator has approved the exemplar SFMAs (`.project/ms-exemplars/`) and `.project/mark-scheme-conventions.md` is written. These are the course-specific inputs the `/mock-3-draft` mark-scheme gate audits against — learned from the course's real mark schemes, never guessed.

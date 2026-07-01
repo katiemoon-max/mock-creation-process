@@ -1,6 +1,6 @@
 ---
 name: mock-2-outline
-description: Phase 2 outline. Produces the paper blueprint (outline markdown + tracker CSV) from Phase 1 catalogues. Enforces command-word+AO+topic duplication gate, per-AO3 litmus test, image-source flag, and paper-specific AO balance tolerance. Required before /mock-3-draft.
+description: Phase 2 outline. Produces the paper blueprint (outline markdown + tracker CSV) from Phase 1 catalogues. Enforces command-word+AO+topic duplication gate, per-AO3 litmus test, image-source flag, paper-specific AO balance tolerance, and per-AO variety / difficulty-distribution / context-freshness checks. Required before /mock-3-draft.
 user_invocable: true
 arguments: ""
 allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Task, mcp__notion__notion-fetch
@@ -9,6 +9,23 @@ allowed-tools: Read, Glob, Grep, Write, Edit, Bash, Task, mcp__notion__notion-fe
 # Mock Paper Outline (Phase 2)
 
 You are blueprinting the paper before any drafting. Everything here is subject-agnostic — Biology, Chemistry, Physics, Psychology, Geography all route through this same script. Board-specific detail comes from `.project/*` files, not from this skill.
+
+## Success Criteria
+
+This phase is complete only when every hard gate verifies. Log each outcome to `project.json.qualityGates.*` as named. Do not advance `phase` to 3 on any hard-gate failure.
+
+**Hard gates (must verify before STOP 2):**
+1. Planned topics within paper scope → verify: CHECK 0 (topicScopeCheck)
+2. No repeated (command-word, AO, topic) triples → verify: CHECK 1A (duplicationCheck)
+3. No MCQ ↔ Section B topic overlap → verify: CHECK 1B (mcqOverlapCheck)
+4. MCQ format variety ≥ 4 categories, no single format over cap → verify: CHECK 1C (mcqFormatVariety)
+5. Every AO3 mark passes the 3-part litmus → verify: CHECK 2 (ao3LitmusCheck)
+6. AO balance within ±3% of `ao-targets.md` → verify: CHECK 3 (aoBalanceCheck)
+7. No exclusion-list violations → verify: CHECK 4 (exclusionListCheck)
+8. Image dependencies surfaced with source assigned → verify: CHECK 5 (imageDependencyCheck)
+9. Typicality cross-check predicts ≥ 4.0/5 with no Critical flags → verify: CHECK 7 (typicalityCheck)
+
+**Soft gates (logged, non-blocking):** stem-usage pre-plan (CHECK 6), paper length norm (CHECK 8), mark tariff norms (CHECK 9), per-AO variety (CHECK 10), difficulty distribution (CHECK 11), intra-paper context freshness (CHECK 12).
 
 Markers: `STOP:`, `ACTION:`, `CHECK:`, `[Conditional]`.
 
@@ -27,6 +44,7 @@ ACTION: Load:
 - `.project/difficulty-targets.md`
 - `.project/exclusion-list.md`
 - `.project/catalogues/ao-question-type.md`
+- `.project/catalogues/ao-breadth-map.md`
 - `.project/catalogues/mcq-catalogue.md`
 - `.project/catalogues/spec-coverage-map.md`
 
@@ -266,6 +284,47 @@ For each structured-question part, compare the assigned mark tariff against the 
 
 Log to `project.json.qualityGates.markTariffCheck`.
 
+### CHECK 10 — Per-AO variety / breadth (soft gate, mandatory)
+
+The anti-"same-y" gate. AO balance (CHECK 3) fixes the *proportion* of each AO; this fixes the *spread* — each AO tested through a range of command words and task types, not one archetype.
+
+Using `.project/catalogues/ao-breadth-map.md` (the board's observed palette per AO), for each AO list the command words and task-type categories used across every mark of that AO in the outline. Check:
+- No single command word accounts for more than ~50% of an AO's marks
+- Each AO is tested through at least 3 distinct command words / task types (exempt an AO that carries only 1–2 parts in this paper)
+- The outline draws from the breadth map's palette rather than clustering on the prototype (AO1 ≈ State, AO2 ≈ Calculate, AO3 ≈ Deduce)
+
+**Why this gate exists:** a paper can pass AO balance, duplication and typicality while every AO1 mark is "State" and every AO2 is "Calculate" — balanced but monotone, under-sampling the spec's breadth. This is the failure mode that drove a large by-hand rework of Paper 1 *after* every other gate had passed.
+
+[Conditional: an AO is monotone]
+> "AO{{N}} is testing narrowly: {{DISTRIBUTION}} (e.g. {{X}}% via '{{COMMAND}}'). Under-used options from the breadth map: {{LIST}}. Recommend diversifying {{K}} parts before drafting."
+
+Log to `project.json.qualityGates.aoVarietyCheck`.
+
+### CHECK 11 — Difficulty distribution (soft gate, mandatory)
+
+Compare the outline's LoD ramp against `.project/difficulty-targets.md`. Check:
+- At least the target number of high-demand parts only the top ~20% should get (default ≥ 3)
+- At least the target number of accessible entry points all candidates can attempt (default ≥ 3)
+- The overall easy / medium / hard mix (MCQs + structured parts) is not skewed away from the targets
+
+**Why this gate exists:** a paper can pass AO balance and typicality while sitting too easy — several Paper 1 MCQs reached review "too easy for the paper" and were hardened by hand. Catch the skew at outline.
+
+[Conditional: distribution misses the targets]
+> "Difficulty distribution is off target: {{SUMMARY}}. difficulty-targets.md asks for {{TARGETS}}. Recommend hardening/softening these parts: {{LIST}}."
+
+Log to `project.json.qualityGates.difficultyDistributionCheck`.
+
+### CHECK 12 — Intra-paper context/format freshness (soft gate)
+
+CHECK 1C covers MCQ format variety; this covers Section B contexts. List each structured question's **context archetype** (e.g. "vertical circular motion", "potential divider", "capacitor discharge") and its distinctive diagram/graph type. Flag any two questions sharing a context archetype or a distinctive format unless the overlap is intended.
+
+**Why this gate exists:** the drafted Paper 1 carried two circular-motion contexts and reused the four-graph MCQ format twice; both were caught by hand after the fact. A fresh context per construct widens the range of scenarios the paper samples.
+
+[Conditional: repeated context archetype]
+> "Q{{N}} and Q{{M}} share the {{ARCHETYPE}} context. Recommend refreshing one for breadth, unless the repeat is deliberate."
+
+Log to `project.json.qualityGates.contextFreshnessCheck`.
+
 ### STOP 2 — Present outline for approval
 
 Show the creator:
@@ -277,6 +336,7 @@ Show the creator:
 - Illustration sources
 - AO3 justifications
 - Duplication audit result
+- Per-AO variety, difficulty distribution and context-freshness results (CHECK 10–12)
 - Past-paper parallels for each structured question
 
 > "Outline complete. All hard gates passed. Would you like to make any changes before we move to drafting, or shall I mark Phase 2 complete?"
@@ -300,6 +360,7 @@ Outline complete for {{PROJECT_NAME}}.
 - Duplication check: PASS (no repeated command-word+AO+topic)
 - AO3 litmus: PASS ({{N}} AO3 marks all justified)
 - Exclusion list: PASS ({{N}} items checked)
+- Variety & difficulty (soft): per-AO spread {{OK/flags}} · difficulty distribution {{OK/flags}} · context freshness {{OK/flags}}
 - Illustrations: {{N}} Claude-generatable, {{M}} creator-provided
 
 Files:

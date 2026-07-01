@@ -469,80 +469,13 @@ Inline marks applied in order: links → bold+italic → bold → italic → str
 
 ---
 
-## 11. Complete Worked Example
+## 11. Complete Worked Examples — the Gold Standard SFMA library
 
-Below is a complete 2-part structured question formatted for Cobalt:
+The definitive worked examples are the **SME Gold Standard SFMA library** in Cobalt — maintained, cross-subject (Physics, Chemistry, Biology, Geography, Maths, AP, CIE) and covering every SFMA type, so they beat any single embedded example. Pull the closest-matching type via `findQuestion` with the `question_set_id`:
 
-```markdown
-# Part a
+- **Defined mark — closed** (fixed-answer point-marked): `tqst_y47V8W9YsPkTCKdC` — includes before/after "original vs gold standard" pairs
+- **Defined mark — open** (accept-list-driven): `tqst_hTnJnWfxV3jdxcp7`
+- **Levelled response** (Level 3/2/1 descriptors + indicative content): `tqst_BRC4pXkf3BVy9nnt`
+- **MCQ** (free-text explanation, no MS&G callout): `tqst_ptq6pZp3h474X24B`
 
-## Problem
-
-State the two conditions required for an object to be in equilibrium.
-
-## Solution
-
-**Mark Scheme and Guidance**
-- The resultant force on the object is zero $m{[1 mark]}
-- The resultant moment about any point is zero $m{[1 mark]}
-
-For the first mark, accept: net force = 0, no unbalanced force, or equivalent
-
-For the second mark, accept: net torque = 0, sum of clockwise moments = sum of anticlockwise moments, or equivalent
-**End of Mark Scheme and Guidance**
-
-**Examiner Tips and Tricks**
-Many students only state the force condition and forget about moments. Remember: equilibrium requires BOTH conditions — forces AND moments.
-**End of Examiner Tips and Tricks**
-
-# Part b
-
-## Problem
-
-A uniform beam of weight $$120 \text{ N}$$ and length $$4.0 \text{ m}$$ is supported at both ends. A $$200 \text{ N}$$ load is placed $$1.0 \text{ m}$$ from the left support.
-
-Calculate the reaction force at the left support.
-
-## Solution
-
-To calculate the reaction force at the left support:
-
-- List the known quantities:
-
-- Weight of beam, $$W = 120 \text{ N}$$ (acts at centre, $$2.0 \text{ m}$$ from left)
-- Load, $$F = 200 \text{ N}$$ (acts $$1.0 \text{ m}$$ from left)
-- Length of beam, $$L = 4.0 \text{ m}$$
-
-- Determine the clockwise and anticlockwise moments about the right support:
-
-{align=center} Clockwise moments = $$R_{L} \times 4.0$$ $m{[1 mark]}
-
-{align=center} Anticlockwise moments = $$\left(120 \times 2.0\right) + \left(200 \times 3.0\right)$$
-
-- Apply the principle of moments to calculate $$R_{L}$$:
-
-{align=center} Clockwise moments = Anticlockwise moments
-
-{align=center} $$R_{L} \times 4.0 = \left(120 \times 2.0\right) + \left(200 \times 3.0\right)$$ $m{[1 mark]}
-
-{align=center} $$R_{L} \times 4.0 = 240 + 600$$
-
-{align=center} $$R_{L} = \frac{840}{4.0}$$
-
-{align=center} $$R_{L} =$$ $f{$$210 \text{ N}$$} $m{[1 mark]}
-
-**Mark Scheme and Guidance**
-1 mark for correct calculation of anticlockwise moments **OR** clockwise moments
-
-1 mark for correct substitution of all values with consistent distances
-
-1 mark for a correct final answer of $$210 \text{ N}$$
-- ecf from incorrect moment equation
-- Must include unit for this mark
-- Accept 210 N or 2.1 × 10^2^ N
-**End of Mark Scheme and Guidance**
-
-**Examiner Tips and Tricks**
-Taking moments about one of the supports eliminates that support's reaction force from the equation, making the algebra simpler. Choose the support you are NOT asked about as your pivot point.
-**End of Examiner Tips and Tricks**
-```
+For the Smart-Mark-readiness rules a mark scheme must satisfy independent of format (the pre-flight gate), see `.claude/context/mark-scheme-standard.md`, which also lists these set IDs.

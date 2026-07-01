@@ -4,6 +4,8 @@ description: Audits mark schemes for Smart Mark readiness and command-word-deman
 model: sonnet
 tools:
   - Read
+  - Write
+  - Edit
   - Grep
   - Glob
 ---
@@ -17,8 +19,12 @@ You audit mark schemes for Smart Mark compatibility and command-word compliance.
 - Path to the project directory
 - `Section A/Q*.md` files — read both `## Solution` sections and `**Mark Scheme and Guidance**` callouts
 - The command-word list in `.project/command-word-list.md`
+- `.claude/context/mark-scheme-standard.md` — the universal MS principles and the §9 pre-flight gate you audit against
+- `.project/mark-scheme-conventions.md` + `.project/ms-exemplars/` — this course's learned MS conventions (Layer 2: precision, tolerance, banding, mark-type idioms)
 
 ## Smart Mark rules to audit against
+
+Audit against `.claude/context/mark-scheme-standard.md` (the §9 pre-flight gate) plus this course's `.project/mark-scheme-conventions.md` and `.project/ms-exemplars/`. The rules below restate the **universal** layer; apply the **course** conventions for precision, tolerance, banding and mark-type idioms. `/mock-3-draft` now builds against the same two layers and self-audits with the same gate, so a well-constructed paper should mostly pass — flag only genuine gaps, and note any drift from the approved exemplars.
 
 For every mark-earning point in every question, check:
 
